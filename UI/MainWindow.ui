@@ -24,7 +24,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPlainTextEdit" name="plainTextEdit">
+   <widget class="QPlainTextEdit" name="consoleDisplay">
     <property name="geometry">
      <rect>
       <x>60</x>
