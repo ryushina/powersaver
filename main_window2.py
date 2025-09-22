@@ -16,8 +16,6 @@ import cv2
 import numpy as np
 from urllib.parse import quote
 from ultralytics import YOLO
-import asyncio
-from tapo import ApiClient
 
 PERSON_CLASS_ID = 0  # COCO id for 'person'
 
@@ -193,7 +191,6 @@ class VideoWorker(QObject):
 
 
 class MainWindow(QMainWindow):
-
     def __init__(self, parent=None):
         print("[DEBUG] MainWindow.__init__ called")
         super().__init__(parent)
