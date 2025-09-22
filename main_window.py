@@ -1,5 +1,7 @@
-# main_window.py
 import os
+
+from shared_state import SharedState
+
 # ---- Make FFmpeg the preferred backend and set sane RTSP options (must be BEFORE importing cv2) ----
 os.environ["OPENCV_VIDEOIO_PRIORITY_FFMPEG"] = "1"   # prefer FFMPEG
 os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"     # avoid MSMF on Windows for RTSP
@@ -16,8 +18,7 @@ import cv2
 import numpy as np
 from urllib.parse import quote
 from ultralytics import YOLO
-import asyncio
-from tapo import ApiClient
+
 
 PERSON_CLASS_ID = 0  # COCO id for 'person'
 
@@ -34,7 +35,8 @@ class VideoWorker(QObject):
         infer_every_n: int = 3,         # run detection every Nth frame
         draw_boxes: bool = True,
         infer_width: int = 480,         # downsize copy for inference
-        reopen_every_failures: int = 10 # try to reconnect after N failed reads
+        reopen_every_failures: int = 10,
+        state:SharedState = None,
     ):
         super().__init__()
         self.rtsp_url = rtsp_url
@@ -42,11 +44,12 @@ class VideoWorker(QObject):
         self.draw_boxes = draw_boxes
         self.infer_width = infer_width
         self.reopen_every_failures = max(3, reopen_every_failures)
-
+        self.state = state
         self._running = True
         self._frame_idx = 0
         self._fail_reads = 0
-        self.device = "cpu"  # force CPU (Radeon iGPU has no CUDA)
+        self.device = "cpu"
+        self.state = state
 
         # Load YOLO model
         try:
@@ -194,13 +197,13 @@ class VideoWorker(QObject):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None,state: SharedState = None):
         print("[DEBUG] MainWindow.__init__ called")
         super().__init__(parent)
         print("[DEBUG] Setting up UI...")
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-
+        self.state = state
         # Video display label
         print("[DEBUG] Setting up video display label...")
         self.video_label = QLabel(self)
@@ -263,7 +266,8 @@ class MainWindow(QMainWindow):
             model_path="yolov8n.pt",
             infer_every_n=3,     # try 2 for more frequent detection, 4 for lighter load
             draw_boxes=True,
-            infer_width=480,     # 320 for even faster CPU inference
+            infer_width=480,
+            state=self.state
         )
         print("[DEBUG] Moving worker to thread...")
         self.worker.moveToThread(self.thread)
@@ -293,6 +297,7 @@ class MainWindow(QMainWindow):
         # Update console with latest count
         if person_count >= 0:
             self.ui.consoleDisplay.setPlainText(f"Persons detected: {person_count}")
+            self.state.current_count = person_count
 
     def on_worker_error(self, msg: str):
         print(f"[DEBUG] Worker error: {msg}")

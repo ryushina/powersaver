@@ -1,43 +1,73 @@
-# main.py
+
 from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtCore import QTimer
 from login_window import LoginWindow
 from main_window import MainWindow
+from shared_state import SharedState
+
+import asyncio
+
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide6.QtCore import QTimer
+
+class DebugWindow(QWidget):
+    def __init__(self, shared_state):
+        super().__init__()
+        self.shared_state = shared_state
+        self.setWindowTitle("Shared State Debugger")
+        self.resize(300, 200)
+
+        layout = QVBoxLayout()
+        self.label = QLabel("Waiting for data...")
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
+        # Timer to refresh the label
+        self.timer = QTimer(self)
+        self.timer.setInterval(1000)  # 1 second
+        self.timer.timeout.connect(self.update_display)
+        self.timer.start()
+
+    def update_display(self):
+        snapshot = self.shared_state.get_snapshot()
+        self.label.setText(str(snapshot))
 
 VALID = [("admin", "admin123"), ("user", "user123")]
 
-def main():
-    print("[DEBUG] Starting QApplication...")
+async def main():
     app = QApplication([])
 
-    print("[DEBUG] Creating LoginWindow...")
     login = LoginWindow()
     login.show()
-    print("[DEBUG] LoginWindow shown")
 
-    def on_submitted(username,password):
-        print(f"[DEBUG] Login submitted - username: {username}, password: {password}")
+    def on_submitted(username, password):
         if not username or not password:
-            print("[DEBUG] Empty username or password")
             QMessageBox.warning(login, "Login", "Username and password are required.")
             return
+        
+
         if (username, password) in VALID:
             print("[DEBUG] Valid credentials, creating MainWindow...")
-            main_win = MainWindow()
+
+            # Create shared state
+            shared = SharedState()
+            main_win = MainWindow(state=shared)
             main_win.show()
-            print("[DEBUG] MainWindow shown, closing login...")
             login.close()
+
+            debug_win = DebugWindow(shared)
+            debug_win.show()
+
+            main_win._debug_win = debug_win
         else:
-            print("[DEBUG] Invalid credentials")
             QMessageBox.critical(login, "Login", "Invalid username or password.")
 
     login.submitted.connect(on_submitted)
-    print("[DEBUG] Starting app.exec()...")
     app.exec()
 
 if __name__ == "__main__":
     try:
-        print("[DEBUG] Starting main()...")
-        main()
+        asyncio.run(main())
     except Exception as e:
         print(f"[DEBUG] Exception in main: {e}")
         import traceback
