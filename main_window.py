@@ -1,7 +1,7 @@
 import os
 
 from shared_state import SharedState
-
+from tapo_controller import TapoPlugController
 # ---- Make FFmpeg the preferred backend and set sane RTSP options (must be BEFORE importing cv2) ----
 os.environ["OPENCV_VIDEOIO_PRIORITY_FFMPEG"] = "1"   # prefer FFMPEG
 os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"     # avoid MSMF on Windows for RTSP
@@ -37,6 +37,7 @@ class VideoWorker(QObject):
         infer_width: int = 480,         # downsize copy for inference
         reopen_every_failures: int = 10,
         state:SharedState = None,
+        tpc: TapoPlugController = None,
     ):
         super().__init__()
         self.rtsp_url = rtsp_url
@@ -50,7 +51,7 @@ class VideoWorker(QObject):
         self._fail_reads = 0
         self.device = "cpu"
         self.state = state
-
+        self.tpc = tpc
         # Load YOLO model
         try:
             print(f"[DEBUG] Loading YOLO model from: {model_path}")
@@ -197,13 +198,14 @@ class VideoWorker(QObject):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, parent=None,state: SharedState = None):
+    def __init__(self, parent=None,state: SharedState = None,tpc:TapoPlugController = None):
         print("[DEBUG] MainWindow.__init__ called")
         super().__init__(parent)
         print("[DEBUG] Setting up UI...")
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.state = state
+        self.tpc = tpc
         # Video display label
         print("[DEBUG] Setting up video display label...")
         self.video_label = QLabel(self)
@@ -267,7 +269,8 @@ class MainWindow(QMainWindow):
             infer_every_n=3,     # try 2 for more frequent detection, 4 for lighter load
             draw_boxes=True,
             infer_width=480,
-            state=self.state
+            state=self.state,
+            tpc=self.tpc
         )
         print("[DEBUG] Moving worker to thread...")
         self.worker.moveToThread(self.thread)
