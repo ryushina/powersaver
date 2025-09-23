@@ -37,7 +37,7 @@ class DebugWindow(QWidget):
 
     def update_display(self):
         snap = self.shared_state.get_snapshot()
-        # Pretty JSON + timestamp
+
         line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] " + json.dumps(snap, ensure_ascii=False)
         self.text.appendPlainText(line)
 
@@ -51,13 +51,13 @@ class DebugWindow(QWidget):
 
 VALID = [("admin", "admin123"), ("user", "user123")]
 
-async def main():
+def main():
     app = QApplication([])
 
     login = LoginWindow()
     login.show()
 
-    async def on_submitted(username, password):
+    def on_submitted(username, password):
         if not username or not password:
             QMessageBox.warning(login, "Login", "Username and password are required.")
             return
@@ -72,20 +72,12 @@ async def main():
                 "iTpower@123",
                 "192.168.0.128"
             )
-            await tpc.connect()
+            tpc.connect()
             shared = SharedState()
-            shared.is_tapo_on = await tpc.get_state()
+            shared.is_tapo_on = tpc.get_state()
             main_win = MainWindow(state=shared,tpc=tpc)
             main_win.show()
-            async def check_people():
-                while True:
-                    await asyncio.sleep(.5)
-                    people.append(shared.current_count)
-                    if len(people)==25:
-                        if all(x == 0 for x in people):
-                            await tpc.turn_off()
-                        del people[0]
-            asyncio.create_task(check_people())
+
             # Show the DebugWindow *now* and keep a reference so it won't get GC'd.
             dbg = DebugWindow(shared_state=shared, interval_ms=1000, max_lines=500)
             dbg.show()
@@ -114,10 +106,10 @@ async def main():
 
     login.submitted.connect(on_submitted)
     app.exec()
-#check for git change
+
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        main()
     except Exception as e:
         print(f"[DEBUG] Exception in main: {e}")
         import traceback
