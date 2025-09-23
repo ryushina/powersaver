@@ -300,7 +300,8 @@ class MainWindow(QMainWindow):
         # Update console with latest count
         if person_count >= 0:
             self.ui.consoleDisplay.setPlainText(f"Persons detected: {person_count}")
-            self.state.current_count = person_count
+            # Use the set_count method to properly update state with timestamp
+            self.state.set_count(person_count)
 
     def on_worker_error(self, msg: str):
         print(f"[DEBUG] Worker error: {msg}")

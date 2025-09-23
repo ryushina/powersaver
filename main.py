@@ -37,17 +37,16 @@ class DebugWindow(QWidget):
 
     def update_display(self):
         snap = self.shared_state.get_snapshot()
-
-        line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] " + json.dumps(snap, ensure_ascii=False)
+        line = json.dumps(snap)
         self.text.appendPlainText(line)
 
         # Optional: trim the buffer so it doesn't grow forever
-        if self.text.blockCount() > self.max_lines:
-            cursor = self.text.textCursor()
-            cursor.movePosition(cursor.Start)
-            cursor.select(cursor.LineUnderCursor)
-            cursor.removeSelectedText()
-            cursor.deleteChar()  # remove newline
+        # if self.text.blockCount() > self.max_lines:
+        #     cursor = self.text.textCursor()
+        #     cursor.movePosition(cursor.Start)
+        #     cursor.select(cursor.LineUnderCursor)
+        #     cursor.removeSelectedText()
+        #     cursor.deleteChar()  # remove newline
 
 VALID = [("admin", "admin123"), ("user", "user123")]
 
@@ -72,9 +71,19 @@ def main():
                 "iTpower@123",
                 "192.168.0.128"
             )
-            tpc.connect()
+            
+            # Connect to Tapo device synchronously
+            try:
+                print("[DEBUG] Connecting to Tapo device...")
+                tpc.connect_sync()
+                tapo_state = tpc.get_state_sync()
+                print(f"[DEBUG] Tapo connection successful, state: {tapo_state}")
+            except Exception as e:
+                print(f"[DEBUG] Failed to connect to Tapo: {e}")
+                tapo_state = False
+            
             shared = SharedState()
-            shared.is_tapo_on = tpc.get_state()
+            shared.is_tapo_on = tapo_state
             main_win = MainWindow(state=shared,tpc=tpc)
             main_win.show()
 
@@ -83,20 +92,6 @@ def main():
             dbg.show()
             main_win._debug_win = dbg  # keep reference with the main window
 
-            # (Optional) a quick keyboard shortcut on the main window to re-show the debugger
-            # Press F12 to bring it back to front if you hide/minimize it.
-            main_win.shortcut_toggle_dbg = main_win.addAction("Toggle Debug")
-            main_win.shortcut_toggle_dbg.setShortcut(Qt.Key_F12)
-
-            def toggle_dbg():
-                if dbg.isVisible():
-                    dbg.hide()
-                else:
-                    dbg.show()
-                    dbg.raise_()
-                    dbg.activateWindow()
-
-            main_win.shortcut_toggle_dbg.triggered.connect(toggle_dbg)
 
             login.close()
 

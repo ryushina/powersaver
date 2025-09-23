@@ -11,6 +11,7 @@ class TapoPlugController:
         self.plug_ip = plug_ip
         self.client = ApiClient(username, password)
         self.plug = None
+        self._connected = False
 
     async def connect(self):
         """
@@ -18,7 +19,20 @@ class TapoPlugController:
         """
         print(f"[DEBUG] Connecting to Tapo P105 at {self.plug_ip}...")
         self.plug = await self.client.p105(self.plug_ip)
+        self._connected = True
         print("[DEBUG] Connected successfully!")
+    
+    def connect_sync(self):
+        """
+        Synchronous wrapper for connect() method.
+        """
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        return loop.run_until_complete(self.connect())
 
     async def turn_on(self):
         """
@@ -68,3 +82,19 @@ class TapoPlugController:
         print(f"[DEBUG] Plug is currently {status}")
 
         return is_on
+    
+    def get_state_sync(self) -> bool:
+        """
+        Synchronous wrapper for get_state() method.
+        """
+        if not self._connected:
+            print("[DEBUG] Not connected, returning False")
+            return False
+            
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        return loop.run_until_complete(self.get_state())
