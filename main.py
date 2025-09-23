@@ -33,7 +33,7 @@ def main():
     login.submitted.connect(on_submitted)
     print("[DEBUG] Starting app.exec()...")
     app.exec()
-
+#check for git change
 if __name__ == "__main__":
     try:
         print("[DEBUG] Starting main()...")
