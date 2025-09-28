@@ -328,6 +328,7 @@ class MainWindow(QMainWindow):
                 if self.thread.isRunning():
                     print("[DEBUG] Quitting thread...")
                     self.thread.quit()
+                    #test nga
                     print("[DEBUG] Waiting for thread to finish (5 seconds)...")
                     if not self.thread.wait(5000):  # Increased timeout to 5 seconds
                         print("[DEBUG] Thread did not finish within 5 seconds, terminating...")
