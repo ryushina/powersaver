@@ -1,5 +1,8 @@
 import asyncio
+
+from sympy import false
 from tapo import ApiClient
+import inspect
 
 class TapoPlugController:
     def __init__(self, username: str, password: str, plug_ip: str):
@@ -11,7 +14,8 @@ class TapoPlugController:
         self.plug_ip = plug_ip
         self.client = ApiClient(username, password)
         self.plug = None
-        self._connected = False
+        self.connected = False
+        self.is_tapo_on = False
 
     async def connect(self):
         """
@@ -19,7 +23,7 @@ class TapoPlugController:
         """
         print(f"[DEBUG] Connecting to Tapo P105 at {self.plug_ip}...")
         self.plug = await self.client.p105(self.plug_ip)
-        self._connected = True
+        self.connected = True
         print("[DEBUG] Connected successfully!")
     
     def connect_sync(self):
@@ -42,6 +46,7 @@ class TapoPlugController:
             raise RuntimeError("Plug is not connected. Call connect() first.")
         print("Turning ON the plug...")
         await self.plug.on()
+        self.is_tapo_on = True
 
     async def turn_off(self):
         """
@@ -51,6 +56,7 @@ class TapoPlugController:
             raise RuntimeError("Plug is not connected. Call connect() first.")
         print("Turning OFF the plug...")
         await self.plug.off()
+        self.is_tapo_on = False
 
     async def cycle_power(self, delay: int = 5):
         """
@@ -61,28 +67,16 @@ class TapoPlugController:
         await asyncio.sleep(delay)
         await self.turn_off()
 
+    @property
     async def get_state(self) -> bool:
-        """
-        Get the current state of the plug.
-
-        Returns:
-            bool: True if the plug is ON, False if OFF.
-        """
         if not self.plug:
             raise RuntimeError("Plug is not connected. Call connect() first.")
+            # Prefer a direct boolean if available
+        if hasattr(self.plug, "is_on"):
+            fn = self.plug.is_on
+            return await fn() if inspect.iscoroutinefunction(fn) else bool(fn())
+        return False
 
-        state = await self.plug.get_state()
-
-        # Debug: print raw state
-        print(f"[DEBUG] Raw state data: {state}")
-
-        # The 'on' key in the returned dict tells us if it's powered
-        is_on = state.get("on", False)
-        status = "ON" if is_on else "OFF"
-        print(f"[DEBUG] Plug is currently {status}")
-
-        return is_on
-    
     def get_state_sync(self) -> bool:
         """
         Synchronous wrapper for get_state() method.
@@ -97,4 +91,4 @@ class TapoPlugController:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         
-        return loop.run_until_complete(self.get_state())
+        return loop.run_until_complete(self.get_state)

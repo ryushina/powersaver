@@ -1,19 +1,14 @@
 
 from PySide6.QtWidgets import QApplication, QMessageBox
-from PySide6.QtCore import QTimer
 from login_window import LoginWindow
 from main_window import MainWindow
 from shared_state import SharedState
-import asyncio
-import time
 import json
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QPlainTextEdit
 from PySide6.QtCore import QTimer
 
 from tapo_controller import TapoPlugController
 
-
-# ---------- Debug Window ----------
 class DebugWindow(QWidget):
     def __init__(self, shared_state, interval_ms=1000, max_lines=500):
         super().__init__()
@@ -26,7 +21,6 @@ class DebugWindow(QWidget):
         layout = QVBoxLayout(self)
         self.text = QPlainTextEdit(self)
         self.text.setReadOnly(True)
-        self.text.setLineWrapMode(QPlainTextEdit.NoWrap)
         self.text.setPlaceholderText("Waiting for data...")
         layout.addWidget(self.text)
 
@@ -40,13 +34,6 @@ class DebugWindow(QWidget):
         line = json.dumps(snap)
         self.text.appendPlainText(line)
 
-        # Optional: trim the buffer so it doesn't grow forever
-        # if self.text.blockCount() > self.max_lines:
-        #     cursor = self.text.textCursor()
-        #     cursor.movePosition(cursor.Start)
-        #     cursor.select(cursor.LineUnderCursor)
-        #     cursor.removeSelectedText()
-        #     cursor.deleteChar()  # remove newline
 
 VALID = [("admin", "admin123"), ("user", "user123")]
 
@@ -64,7 +51,7 @@ def main():
 
         if (username, password) in VALID:
             print("[DEBUG] Valid credentials, creating MainWindow...")
-            people = []
+
             # Create shared state
             tpc = TapoPlugController(
                 "rustanlacanilao@gmail.com",
@@ -84,18 +71,13 @@ def main():
             
             shared = SharedState()
             shared.is_tapo_on = tapo_state
-            main_win = MainWindow(state=shared,tpc=tpc)
+              # keep reference with the main window
+            login.close()
+            main_win = MainWindow(state=shared, tpc=tpc)
             main_win.show()
-
-            # Show the DebugWindow *now* and keep a reference so it won't get GC'd.
             dbg = DebugWindow(shared_state=shared, interval_ms=1000, max_lines=500)
             dbg.show()
-            main_win._debug_win = dbg  # keep reference with the main window
-
-
-            login.close()
-
-
+            main_win._debug_win = dbg
         else:
             QMessageBox.critical(login, "Login", "Invalid username or password.")
 
@@ -105,7 +87,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
-        print(f"[DEBUG] Exception in main: {e}")
+    except Exception as exc:
+        print(f"[DEBUG] Exception in main: {exc}")
         import traceback
         traceback.print_exc()

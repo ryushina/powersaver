@@ -11,7 +11,7 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|stimeout;30000
 from PySide6.QtWidgets import QMainWindow, QGraphicsScene, QLabel, QSizePolicy
 from PySide6.QtCore import QThread, Signal, QObject, Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
-
+from diskcache import Cache
 from UI.MainWindow_ui import Ui_MainWindow
 
 import cv2
@@ -237,6 +237,7 @@ class MainWindow(QMainWindow):
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self._beat)
         self.status_timer.start(1000)
+        self.cache = Cache("./app_cache")
         print("[DEBUG] MainWindow initialization complete")
 
         # Connect resize event to handle video label resizing
@@ -300,7 +301,7 @@ class MainWindow(QMainWindow):
         # Update console with latest count
         if person_count >= 0:
             self.ui.consoleDisplay.setPlainText(f"Persons detected: {person_count}")
-            # Use the set_count method to properly update state with timestamp
+            self.cache.set("person_count", person_count)
             self.state.set_count(person_count)
 
     def on_worker_error(self, msg: str):
