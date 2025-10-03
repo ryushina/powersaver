@@ -9,7 +9,7 @@ people=[]
 
 async def main():
     turn_on_mes = SMSSender(number="09533000636",message="Successfully turned on device")
-    turn_off_mes = SMSSender(number="09533000636",message="Successfully turned off device")
+    turn_off_mes = SMSSender(number="09533000636",message="Devices are turned off")
     controller = TapoPlugController(
         "rustanlacanilao@gmail.com",
         "iTpower@123",
@@ -26,14 +26,14 @@ async def main():
                 people.append(val)
                 if len(people) == 30:
                     del people[0]
-                    if all(v == 0 for v in people):
+                    if all(v == 0 for v in people ) and bool(cache.get("is_tapo_on"))  == True:
                         await controller.turn_off()
                         turn_off_mes.send()
-                time.sleep(1)
-                print(f"[{time.strftime('%H:%M:%S')}] {KEY} = {val!r} {controller.is_tapo_on}")
-                if controller.is_tapo_on==False and val>0:
+                print(f"[{time.strftime('%H:%M:%S')}] {KEY} = {val!r} {cache.get("is_tapo_on")}")
+                if bool(cache.get("is_tapo_on"))==False and val>0:
                     await controller.turn_on()
                     turn_on_mes.send()
+                time.sleep(1)
         except KeyboardInterrupt:
             print("\nStopped.")
 

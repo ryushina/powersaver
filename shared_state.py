@@ -1,8 +1,11 @@
+from diskcache import Cache
+
 class SharedState:
     def __init__(self):
         self.current_count = 0
         self.is_tapo_on = None
         self.last_nonzero_ts = 0
+        self.cache = Cache("./app_cache")
 
     def set_count(self, n):
         self.current_count = max(0, int(n))
@@ -16,6 +19,6 @@ class SharedState:
     def get_snapshot(self):
         return {
             "current_count": self.current_count,
-            "is_tapo_on": self.is_tapo_on,
+            "is_tapo_on": self.cache.get("is_tapo_on"),
             "last_nonzero_ts": self.last_nonzero_ts,
         }

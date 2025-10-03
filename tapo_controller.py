@@ -1,6 +1,6 @@
 import asyncio
+from diskcache import Cache
 
-from sympy import false
 from tapo import ApiClient
 import inspect
 
@@ -46,6 +46,8 @@ class TapoPlugController:
             raise RuntimeError("Plug is not connected. Call connect() first.")
         print("Turning ON the plug...")
         await self.plug.on()
+        with Cache("./app_cache") as cache:
+            cache.set("is_tapo_on", True)
         self.is_tapo_on = True
 
     async def turn_off(self):
@@ -56,6 +58,8 @@ class TapoPlugController:
             raise RuntimeError("Plug is not connected. Call connect() first.")
         print("Turning OFF the plug...")
         await self.plug.off()
+        with Cache("./app_cache") as cache:
+            cache.set("is_tapo_on", False)
         self.is_tapo_on = False
 
     async def cycle_power(self, delay: int = 5):
