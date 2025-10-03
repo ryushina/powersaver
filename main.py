@@ -84,10 +84,10 @@ def main():
     login.submitted.connect(on_submitted)
     app.exec()
 
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as exc:
-        print(f"[DEBUG] Exception in main: {exc}")
-        import traceback
-        traceback.print_exc()
+#if __name__ == "__main__":
+try:
+    main()
+except Exception as exc:
+    print(f"[DEBUG] Exception in main: {exc}")
+    import traceback
+    traceback.print_exc()
