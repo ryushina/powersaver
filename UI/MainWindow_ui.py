@@ -16,7 +16,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QGraphicsView, QMainWindow, QPlainTextEdit,
-    QSizePolicy, QStatusBar, QWidget)
+    QPushButton, QSizePolicy, QStatusBar, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -31,6 +31,9 @@ class Ui_MainWindow(object):
         self.consoleDisplay = QPlainTextEdit(self.centralwidget)
         self.consoleDisplay.setObjectName(u"consoleDisplay")
         self.consoleDisplay.setGeometry(QRect(60, 380, 451, 141))
+        self.btnExtract = QPushButton(self.centralwidget)
+        self.btnExtract.setObjectName(u"btnExtract")
+        self.btnExtract.setGeometry(QRect(540, 410, 221, 24))
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -43,5 +46,6 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Control Window", None))
+        self.btnExtract.setText(QCoreApplication.translate("MainWindow", u"Extractor Window", None))
     # retranslateUi
 

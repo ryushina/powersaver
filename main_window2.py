@@ -1,22 +1,15 @@
-from datetime import datetime as dt
 import os
-import csv
-import sqlite3
-from log_extractor import LogExtractor
+
 from shared_state import SharedState
 from tapo_controller import TapoPlugController
-
-# ---- Prefer FFMPEG and set RTSP options BEFORE importing cv2 ----
+# ---- Make FFmpeg the preferred backend and set sane RTSP options (must be BEFORE importing cv2) ----
 os.environ["OPENCV_VIDEOIO_PRIORITY_FFMPEG"] = "1"   # prefer FFMPEG
 os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"     # avoid MSMF on Windows for RTSP
 # Force TCP + short timeouts (values are microseconds)
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|stimeout;3000000|max_delay;500000"
 
-from PySide6.QtWidgets import (
-    QMainWindow, QLabel, QSizePolicy,
-    QFileDialog, QMessageBox
-)
-from PySide6.QtCore import QThread, Signal, QObject, Qt, QTimer, QDate, QStandardPaths, QLocale
+from PySide6.QtWidgets import QMainWindow, QGraphicsScene, QLabel, QSizePolicy
+from PySide6.QtCore import QThread, Signal, QObject, Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 from diskcache import Cache
 from UI.MainWindow_ui import Ui_MainWindow
@@ -43,7 +36,7 @@ class VideoWorker(QObject):
         draw_boxes: bool = True,
         infer_width: int = 480,         # downsize copy for inference
         reopen_every_failures: int = 10,
-        state: SharedState = None,
+        state:SharedState = None,
         tpc: TapoPlugController = None,
     ):
         super().__init__()
@@ -57,8 +50,8 @@ class VideoWorker(QObject):
         self._frame_idx = 0
         self._fail_reads = 0
         self.device = "cpu"
+        self.state = state
         self.tpc = tpc
-
         # Load YOLO model
         try:
             print(f"[DEBUG] Loading YOLO model from: {model_path}")
@@ -117,7 +110,9 @@ class VideoWorker(QObject):
     def run(self):
         try:
             print("[DEBUG] VideoWorker thread started")
+            import time
             while self._running:
+                # Check if we should stop periodically
                 if not self._running:
                     print("[DEBUG] _running flag is False, breaking loop")
                     break
@@ -203,7 +198,7 @@ class VideoWorker(QObject):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, parent=None, state: SharedState = None, tpc: TapoPlugController = None):
+    def __init__(self, parent=None,state: SharedState = None,tpc:TapoPlugController = None):
         print("[DEBUG] MainWindow.__init__ called")
         super().__init__(parent)
         print("[DEBUG] Setting up UI...")
@@ -211,9 +206,7 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         self.state = state
         self.tpc = tpc
-        self._log_extractor = None
-
-        # ===== Video display label =====
+        # Video display label
         print("[DEBUG] Setting up video display label...")
         self.video_label = QLabel(self)
         self.video_label.setGeometry(50, 20, 661, 331)  # Same size as original graphicsView
@@ -222,6 +215,7 @@ class MainWindow(QMainWindow):
         self.video_label.setMinimumSize(320, 240)
         self.video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
+        # Show initial message
         self.video_label.setText("Connecting to camera...\nPlease wait...")
         self.video_label.setStyleSheet("""
             QLabel {
@@ -238,30 +232,20 @@ class MainWindow(QMainWindow):
         print("[DEBUG] Initializing camera and AI...")
         self.init_camera_and_ai()
 
-        # Heartbeat
+        # Optional: tiny heartbeat to show app is alive
         self._tick = 0
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self._beat)
         self.status_timer.start(1000)
         self.cache = Cache("./app_cache")
         print("[DEBUG] MainWindow initialization complete")
-        self.ui.btnExtract.clicked.connect(self.open_log_extractor)
+
+        # Connect resize event to handle video label resizing
         self.resizeEvent = self._on_resize
 
-    def open_log_extractor(self):
-        # If it’s already open, just bring it to front
-        if self._log_extractor and self._log_extractor.isVisible():
-            self._log_extractor.raise_()
-            self._log_extractor.activateWindow()
-            return
-
-        self._log_extractor = LogExtractor()  # no parent -> top-level window
-        # Clean up the reference when the window is closed
-        self._log_extractor.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
-        self._log_extractor.destroyed.connect(lambda: setattr(self, "_log_extractor", None))
-        self._log_extractor.show()
     def _beat(self):
         self._tick += 1
+        # Keep it quiet; uncomment if you want a subtle heartbeat in the console widget
         # self.ui.consoleDisplay.appendPlainText(f"[tick] {self._tick}")
 
     def init_camera_and_ai(self):
@@ -318,18 +302,18 @@ class MainWindow(QMainWindow):
         if person_count >= 0:
             self.ui.consoleDisplay.setPlainText(f"Persons detected: {person_count}")
             self.cache.set("person_count", person_count)
-            if self.state:
-                self.state.set_count(person_count)
+            self.state.set_count(person_count)
 
     def on_worker_error(self, msg: str):
         print(f"[DEBUG] Worker error: {msg}")
         self.ui.consoleDisplay.appendPlainText(f"[ERROR] {msg}")
 
     def _on_resize(self, event):
-
+        """Handle window resize to adjust video label size"""
         if hasattr(self, 'video_label'):
-            new_width = min(self.width() - 100, 661)   # Max width with margin
-            new_height = min(self.height() - 200, 331) # Max height with margin
+            # Calculate new size for video label (maintain aspect ratio)
+            new_width = min(self.width() - 100, 661)  # Max width with some margin
+            new_height = min(self.height() - 200, 331)  # Max height with some margin
             self.video_label.setGeometry(50, 20, new_width, new_height)
         super().resizeEvent(event)
 
@@ -345,11 +329,12 @@ class MainWindow(QMainWindow):
                 if self.thread.isRunning():
                     print("[DEBUG] Quitting thread...")
                     self.thread.quit()
+                    #test nga
                     print("[DEBUG] Waiting for thread to finish (5 seconds)...")
-                    if not self.thread.wait(5000):  # 5 seconds
-                        print("[DEBUG] Thread did not finish, terminating...")
-                        self.thread.terminate()
-                        self.thread.wait()
+                    if not self.thread.wait(5000):  # Increased timeout to 5 seconds
+                        print("[DEBUG] Thread did not finish within 5 seconds, terminating...")
+                        self.thread.terminate()  # Force terminate if it doesn't respond
+                        self.thread.wait()  # Wait for termination to complete
                         print("[DEBUG] Thread terminated forcefully")
                     else:
                         print("[DEBUG] Thread finished successfully")

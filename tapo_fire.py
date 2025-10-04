@@ -3,11 +3,14 @@ from tapo_controller import TapoPlugController
 from diskcache import Cache
 import time
 from sms_sender import SMSSender
+from infra_sqlite import SQLiteLogRepo
+from datetime import datetime
 
 KEY = "person_count"
 people=[]
 
 async def main():
+    logger = SQLiteLogRepo()
     turn_on_mes = SMSSender(number="09533000636",message="Successfully turned on device")
     turn_off_mes = SMSSender(number="09533000636",message="Devices are turned off")
     controller = TapoPlugController(
@@ -17,13 +20,15 @@ async def main():
     )
     await controller.connect()
     await controller.turn_off()
-#push
+
 
     with Cache("./app_cache") as cache:
         try:
             while True:
                 val = int(cache.get(KEY,0))
                 people.append(val)
+                now = datetime.now()
+                await logger.log(now.strftime("%Y-%m-%d %H:%M:%S"), str(val),cache.get("is_tapo_on"))
                 if len(people) == 30:
                     del people[0]
                     if all(v == 0 for v in people ) and bool(cache.get("is_tapo_on"))  == True:
@@ -40,7 +45,7 @@ async def main():
 
 
 
-#if __name__ == "__main__":
+
 try:
     asyncio.run(main())
 except Exception as exc:
