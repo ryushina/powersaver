@@ -1,7 +1,7 @@
-from datetime import datetime as dt
+
 import os
-import csv
-import sqlite3
+
+
 from log_extractor import LogExtractor
 from shared_state import SharedState
 from tapo_controller import TapoPlugController
@@ -14,7 +14,7 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|stimeout;30000
 
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QSizePolicy,
-    QFileDialog, QMessageBox
+
 )
 from PySide6.QtCore import QThread, Signal, QObject, Qt, QTimer, QDate, QStandardPaths, QLocale
 from PySide6.QtGui import QImage, QPixmap

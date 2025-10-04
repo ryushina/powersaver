@@ -1,7 +1,7 @@
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 from login_window import LoginWindow
-from main_window2 import MainWindow
+from main_window import MainWindow
 from shared_state import SharedState
 import json
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QPlainTextEdit
